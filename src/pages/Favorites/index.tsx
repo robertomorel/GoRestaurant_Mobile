@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Image } from 'react-native';
+import { Image, Alert } from 'react-native';
 
 import api from '../../services/api';
 import formatValue from '../../utils/formatValue';
@@ -18,7 +18,7 @@ import {
   FoodPricing,
 } from './styles';
 
-interface Food {
+interface Product {
   id: number;
   name: string;
   description: string;
@@ -28,11 +28,32 @@ interface Food {
 }
 
 const Favorites: React.FC = () => {
-  const [favorites, setFavorites] = useState<Food[]>([]);
+  const [favorites, setFavorites] = useState<Product[]>([]);
 
   useEffect(() => {
     async function loadFavorites(): Promise<void> {
-      // Load favorite foods from api
+      api
+        .get('/favorites')
+        .then(response => {
+          const foundFavorites = response.data;
+          const formattedFavorites: Product[] = foundFavorites.map(
+            (food: Product) => {
+              const { id, name, description, price, thumbnail_url } = food;
+              return {
+                id,
+                name,
+                description,
+                price,
+                thumbnail_url,
+                formattedPrice: formatValue(price),
+              };
+            },
+          );
+          setFavorites(formattedFavorites);
+        })
+        .catch(err => {
+          Alert.alert('Erro ao buscar os pedidos.', `Detalhes: ${err}`);
+        });
     }
 
     loadFavorites();

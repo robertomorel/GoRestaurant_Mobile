@@ -5,7 +5,7 @@ import React, {
   useMemo,
   useLayoutEffect,
 } from 'react';
-import { Image } from 'react-native';
+import { Image, Alert } from 'react-native';
 
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
@@ -56,11 +56,14 @@ interface Food {
   description: string;
   price: number;
   image_url: string;
+  thumbnail_url: string;
+  category: number;
   formattedPrice: string;
   extras: Extra[];
 }
 
 const FoodDetails: React.FC = () => {
+  // const [food, setFood] = useState({} as Omit<Food, 'extras'>);
   const [food, setFood] = useState({} as Food);
   const [extras, setExtras] = useState<Extra[]>([]);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -74,33 +77,88 @@ const FoodDetails: React.FC = () => {
   useEffect(() => {
     async function loadFood(): Promise<void> {
       // Load a specific food with extras based on routeParams id
+      const { id } = routeParams;
+      /*
+      const { data } = await api.get(`/foods/${id}`);
+      setFood(data);
+
+      if (food && food.extras) {
+        const newExtras = food.extras.map(extra => {
+          return {
+            ...extra,
+            quantity: 0,
+          };
+        });
+        setExtras(newExtras);
+      }
+      */
+      api.get(`/foods/${id}`).then(response => {
+        const foundFood = response.data;
+        setFood(foundFood);
+        const newExtras = foundFood.extras.map((extra: Extra) => {
+          return {
+            ...extra,
+            quantity: 0,
+          };
+        });
+        setExtras(newExtras);
+      });
     }
 
     loadFood();
   }, [routeParams]);
 
   function handleIncrementExtra(id: number): void {
-    // Increment extra quantity
+    const allExtras = [...extras];
+    const index = allExtras.findIndex(item => item.id === id);
+
+    if (index === -1) return;
+
+    Object.assign(allExtras[index], {
+      quantity: allExtras[index].quantity + 1,
+    });
+
+    setExtras(allExtras);
   }
 
   function handleDecrementExtra(id: number): void {
-    // Decrement extra quantity
+    const allExtras = [...extras];
+    const index = allExtras.findIndex(item => item.id === id);
+
+    if (index === -1) return;
+
+    if (allExtras[index].quantity === 0) return;
+
+    Object.assign(allExtras[index], {
+      quantity: allExtras[index].quantity - 1,
+    });
+
+    setExtras(allExtras);
   }
 
   function handleIncrementFood(): void {
-    // Increment food quantity
+    setFoodQuantity(state => state + 1);
   }
 
   function handleDecrementFood(): void {
-    // Decrement food quantity
+    if (foodQuantity === 1) return;
+    setFoodQuantity(state => state - 1);
   }
 
-  const toggleFavorite = useCallback(() => {
-    // Toggle if food is favorite or not
-  }, [isFavorite, food]);
+  const toggleFavorite = useCallback(async () => {
+    setIsFavorite(state => !state);
+  }, []);
 
   const cartTotal = useMemo(() => {
-    // Calculate cartTotal
+    let totalPrice = 0;
+    totalPrice += extras
+      .map(extra => extra.value * extra.quantity)
+      .reduce((acumulador, atual) => {
+        return Number(acumulador) + Number(atual);
+      }, 0);
+    totalPrice += Number(food.price);
+    totalPrice *= Number(foodQuantity);
+    return formatValue(totalPrice);
   }, [extras, food, foodQuantity]);
 
   async function handleFinishOrder(): Promise<void> {

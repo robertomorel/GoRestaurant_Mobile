@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Image, ScrollView } from 'react-native';
+import { Image, ScrollView, Alert } from 'react-native';
 
 import Icon from 'react-native-vector-icons/Feather';
 import { useNavigation } from '@react-navigation/native';
@@ -32,6 +32,7 @@ interface Food {
   id: number;
   name: string;
   description: string;
+  category: number;
   price: number;
   thumbnail_url: string;
   formattedPrice: string;
@@ -54,12 +55,69 @@ const Dashboard: React.FC = () => {
   const navigation = useNavigation();
 
   async function handleNavigate(id: number): Promise<void> {
-    // Navigate do ProductDetails page
+    navigation.navigate('FoodDetails', { id });
   }
+
+  /*
+  useEffect(() => {
+    async function loadFoods(): Promise<void> {
+      const response = await api.get('/foods');
+      const foundFoods = response.data;
+      const filteredAndFormattedFoods: Food[] = foundFoods
+        .filter(
+          ({ name, category }: Food) =>
+            (searchValue && searchValue !== ''
+              ? name.includes(searchValue)
+              : true) &&
+            (selectedCategory ? selectedCategory === category : true),
+        )
+        .map((food: Food) => {
+          const { id, name, description, price, thumbnail_url } = food;
+          return {
+            id,
+            name,
+            description,
+            price,
+            thumbnail_url,
+            formattedPrice: formatValue(price),
+          };
+        });
+      setFoods(filteredAndFormattedFoods);
+    }
+    */
+
+  /*
+  useEffect(() => {
+    async function loadFoods(): Promise<void> {
+      // http://localhost:3000/foods?category_like=1
+      // http://localhost:3000/foods?name_like=Veggie
+      let endpoint = '';
+      if (selectedCategory && (!searchValue || searchValue === '')) {
+        endpoint = `/foods?category_like=${selectedCategory}`;
+      } else if (!selectedCategory && searchValue && searchValue !== '') {
+        endpoint = `/foods?name_like=${searchValue}`;
+      } else if (selectedCategory && searchValue && searchValue !== '') {
+        endpoint = `/foods?name_like=${searchValue}&category_like=${selectedCategory}`;
+      } else {
+        endpoint = '/foods';
+      }
+      const response = await api.get(endpoint);
+      setFoods(response.data);
+    }
+
+    loadFoods();
+  }, [selectedCategory, searchValue]);
+  */
 
   useEffect(() => {
     async function loadFoods(): Promise<void> {
-      // Load Foods from API
+      const response = await api.get('/foods', {
+        params: {
+          category_like: selectedCategory || null,
+          name_like: searchValue,
+        },
+      });
+      setFoods(response.data);
     }
 
     loadFoods();
@@ -67,14 +125,22 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     async function loadCategories(): Promise<void> {
-      // Load categories from API
+      api
+        .get('/categories')
+        .then(response => {
+          setCategories(response.data);
+        })
+        .catch(err => {
+          Alert.alert('Falha ao carregar as categorias', `Detalhe: ${err}`);
+        });
     }
 
     loadCategories();
   }, []);
 
   function handleSelectCategory(id: number): void {
-    // Select / deselect category
+    // setSelectedCategory(id);
+    setSelectedCategory(selectedCategory === id ? undefined : id);
   }
 
   return (
